@@ -10,6 +10,8 @@ class Searcher
     static public void StepByFolders(string path, string filname)
     {
         string[] hereFiles = Directory.GetFiles(path);
+        string[] hereFolders = Directory.GetDirectories(path);
+
         List<FileInfo> currentFiles = new List<FileInfo>();
         List<string> fileNames = new List<string>();
 
@@ -23,16 +25,20 @@ class Searcher
         {
             int foundedIndex = fileNames.IndexOf(filname);
             Console.WriteLine($"We found it, nice! Your file is here: '{hereFiles[foundedIndex]}'");
+            Environment.Exit(0);
         }
         else
         {
-            string[] hereFolders = Directory.GetDirectories(path);
-
             for (int s = 0; s < hereFolders.Length; s++)
             {
                 StepByFolders(hereFolders[s], filname);
-            }
 
+                if (s == hereFolders.Length - 1)
+                {
+                    Console.WriteLine($"Sorry, I can't find your file here");
+                    Environment.Exit(0);
+                }
+            }
         }
     }
 }
