@@ -1,10 +1,14 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using System.Collections;
 
 string sourceDirectory = @"/home/dunice/tfolder/tfold2";
 string requiredFile = "file5.txt";
 Searcher.StepByFolders(sourceDirectory, requiredFile);
+
+// Thread t1 = Thread.CurrentThread;
+
 class Searcher
 {
     static public void StepByFolders(string path, string filname)
