@@ -2,7 +2,7 @@
 using System.IO;
 using System.Collections;
 
-string sourceDirectory = @"/home/dunice/tfolder/tfold2";
+string sourceDirectory = "/home/dunice/tfolder/tfold2";
 string requiredFile = "file5.txt";
 
 CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
@@ -16,8 +16,6 @@ class Searcher
     static public async Task StepByFolders(string path, string filname, CancellationToken token)
     {
         semaphore.Wait();
-
-        //Console.WriteLine($"Current thread's id: {Thread.CurrentThread.ManagedThreadId}");
 
         string[] hereFiles = Directory.GetFiles(path);
         string[] hereFolders = Directory.GetDirectories(path);
@@ -46,7 +44,6 @@ class Searcher
                 Task task = Task.Run(() => Searcher.StepByFolders(folder, filname, token));
                 tasks.Add(task);
             }
-
             try
             {
                 await Task.WhenAll(tasks);
