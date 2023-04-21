@@ -5,17 +5,15 @@ using System.Collections;
 string sourceDirectory = @"/home/dunice/tfolder/tfold2";
 string requiredFile = "file5.txt";
 
-Task t1 = Task.Run(() => Searcher.StepByFolders(sourceDirectory, requiredFile));
-//Searcher.StepByFolders(sourceDirectory, requiredFile);
-//t1.Wait();
 CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
 CancellationToken token = cancelTokenSource.Token;
-await t1.WaitAsync(token);
+
+await Task.Run(() => Searcher.StepByFolders(sourceDirectory, requiredFile, token));
 class Searcher
 {
     static SemaphoreSlim semaphore = new SemaphoreSlim(Environment.ProcessorCount);
 
-    static public async void StepByFolders(string path, string filname)
+    static public async void StepByFolders(string path, string filname, CancellationToken token)
     {
         semaphore.Wait();
 
@@ -41,29 +39,36 @@ class Searcher
         }
         else
         {
-            // Parallel.ForEach(hereFolders, folder =>
-            // {
-            //     StepByFolders(folder, filname);
-            // });
-            // Console.WriteLine($"Sorry, I can't find your file here");
-            // Environment.Exit(0);
+            List<Task> tasks = new List<Task>();
 
-            for (int s = 0; s < hereFolders.Length; s++)
+            foreach (string folder in hereFolders)
             {
-                Task newTask = Task.Run(() => StepByFolders(hereFolders[s], filname));
-
-                CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
-                CancellationToken token = cancelTokenSource.Token;
-
-                await newTask.WaitAsync(token);
-                //StepByFolders(hereFolders[s], filname);
-
-                if (s == hereFolders.Length - 1)
-                {
-                    Console.WriteLine($"Sorry, I can't find your file here");
-                    Environment.Exit(0);
-                }
+                Task task = Task.Run(() => Searcher.StepByFolders(folder, filname, token));
+                tasks.Add(task);
             }
+
+            try
+            {
+                await Task.WhenAll(tasks);
+            }
+            catch (OperationCanceledException){}
+
+            // for (int s = 0; s < hereFolders.Length; s++)
+            // {
+            //     Task newTask = Task.Run(() => StepByFolders(hereFolders[s], filname));
+
+            //     CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
+            //     CancellationToken token = cancelTokenSource.Token;
+
+            //     await newTask.WaitAsync(token);
+            //     //StepByFolders(hereFolders[s], filname);
+
+            //     if (s == hereFolders.Length - 1)
+            //     {
+            //         Console.WriteLine($"Sorry, I can't find your file here");
+            //         Environment.Exit(0);
+            //     }
+            // }
         }
         semaphore.Release();
     }
