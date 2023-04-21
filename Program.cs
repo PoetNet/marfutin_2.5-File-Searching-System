@@ -13,11 +13,11 @@ class Searcher
 {
     static SemaphoreSlim semaphore = new SemaphoreSlim(Environment.ProcessorCount);
 
-    static public async void StepByFolders(string path, string filname, CancellationToken token)
+    static public async Task StepByFolders(string path, string filname, CancellationToken token)
     {
         semaphore.Wait();
 
-        Console.WriteLine($"Current thread's id: {Thread.CurrentThread.ManagedThreadId}");
+        //Console.WriteLine($"Current thread's id: {Thread.CurrentThread.ManagedThreadId}");
 
         string[] hereFiles = Directory.GetFiles(path);
         string[] hereFolders = Directory.GetDirectories(path);
@@ -52,23 +52,6 @@ class Searcher
                 await Task.WhenAll(tasks);
             }
             catch (OperationCanceledException){}
-
-            // for (int s = 0; s < hereFolders.Length; s++)
-            // {
-            //     Task newTask = Task.Run(() => StepByFolders(hereFolders[s], filname));
-
-            //     CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
-            //     CancellationToken token = cancelTokenSource.Token;
-
-            //     await newTask.WaitAsync(token);
-            //     //StepByFolders(hereFolders[s], filname);
-
-            //     if (s == hereFolders.Length - 1)
-            //     {
-            //         Console.WriteLine($"Sorry, I can't find your file here");
-            //         Environment.Exit(0);
-            //     }
-            // }
         }
         semaphore.Release();
     }
