@@ -4,11 +4,23 @@ using System.Collections;
 
 string sourceDirectory = @"/home/dunice/tfolder/tfold2";
 string requiredFile = "file5.txt";
-Searcher.StepByFolders(sourceDirectory, requiredFile);
+
+Task t1 = Task.Run(() => Searcher.StepByFolders(sourceDirectory, requiredFile));
+//Searcher.StepByFolders(sourceDirectory, requiredFile);
+//t1.Wait();
+CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
+CancellationToken token = cancelTokenSource.Token;
+await t1.WaitAsync(token);
 class Searcher
 {
-    static public void StepByFolders(string path, string filname)
+    static SemaphoreSlim semaphore = new SemaphoreSlim(Environment.ProcessorCount);
+
+    static public async void StepByFolders(string path, string filname)
     {
+        semaphore.Wait();
+
+        Console.WriteLine($"Current thread's id: {Thread.CurrentThread.ManagedThreadId}");
+
         string[] hereFiles = Directory.GetFiles(path);
         string[] hereFolders = Directory.GetDirectories(path);
 
@@ -29,9 +41,22 @@ class Searcher
         }
         else
         {
+            // Parallel.ForEach(hereFolders, folder =>
+            // {
+            //     StepByFolders(folder, filname);
+            // });
+            // Console.WriteLine($"Sorry, I can't find your file here");
+            // Environment.Exit(0);
+
             for (int s = 0; s < hereFolders.Length; s++)
             {
-                StepByFolders(hereFolders[s], filname);
+                Task newTask = Task.Run(() => StepByFolders(hereFolders[s], filname));
+
+                CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
+                CancellationToken token = cancelTokenSource.Token;
+
+                await newTask.WaitAsync(token);
+                //StepByFolders(hereFolders[s], filname);
 
                 if (s == hereFolders.Length - 1)
                 {
@@ -40,5 +65,6 @@ class Searcher
                 }
             }
         }
+        semaphore.Release();
     }
 }
