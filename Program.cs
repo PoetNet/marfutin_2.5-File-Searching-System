@@ -4,7 +4,6 @@ using System.Threading;
 using System.Collections;
 using static System.Environment;
 
-
 string sourceDirectory = @"/home/dunice/tfolder/tfold2";
 string requiredFile = "file5.txt";
 int processorCount = Environment.ProcessorCount;
@@ -54,8 +53,7 @@ class Searcher
             Environment.Exit(0);
         }
         else
-        {
-            
+        {            
             for (int s = 0; s < hereFolders.Length; s++)
             {
                 sem.WaitOne();
@@ -70,41 +68,6 @@ class Searcher
                     Environment.Exit(0);
                 }
             }
-
         }
-    }
-}
-
-
-class Reader
-{
-    static Semaphore sem = new Semaphore(3, 3);
-    Thread myThread;
-    int count = 6;
-
-    public Reader(int i)
-    {
-        myThread = new Thread(Read);
-        myThread.Name = $"Читатель {i}";
-        myThread.Start();
-    }
-
-    public void Read()
-    {
-        while (count > 0)
-        {
-            sem.WaitOne();
-
-            Console.WriteLine($"{Thread.CurrentThread.Name} входит в библиотеку");
-            Console.WriteLine($"{Thread.CurrentThread.Name} читает");
-            Thread.Sleep(1000);
-
-            Console.WriteLine($"{Thread.CurrentThread.Name} покидает библиотеку");
-            sem.Release();
-
-            count--;
-            Thread.Sleep(1000);
-        }
-
     }
 }
