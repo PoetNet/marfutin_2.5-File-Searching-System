@@ -1,42 +1,24 @@
 ﻿using System;
 using System.IO;
-using System.Threading;
 using System.Collections;
-using static System.Environment;
 
-
-string sourceDirectory = @"/home/dunice/tfolder/tfold2";
+string sourceDirectory = "/home/dunice/tfolder/tfold2";
 string requiredFile = "file5.txt";
-int processorCount = Environment.ProcessorCount;
 
-for (int i = 1; i <= processorCount; i++)
-{
-    Searcher searcher = new Searcher(i, sourceDirectory, requiredFile, processorCount);
-}
+CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
+CancellationToken token = cancelTokenSource.Token;
 
+await Task.Run(() => Searcher.StepByFolders(sourceDirectory, requiredFile, token));
 class Searcher
 {
-    static Semaphore sem = new Semaphore(1, ProcessorCount);
-    string RequiredFile {set;get;}
-    string Path {set;get;}
-    static int ProcessorCount;
+    static SemaphoreSlim semaphore = new SemaphoreSlim(Environment.ProcessorCount);
 
-    Thread myThread;
-    public Searcher (int i, string path, string requiredFile, int processorCount)
+    static public async Task StepByFolders(string path, string filname, CancellationToken token)
     {
-        RequiredFile = requiredFile;
-        Path = path;
-        ProcessorCount = processorCount;
+        semaphore.Wait();
 
-        myThread = new Thread(StepByFolders);
-        myThread.Name = $"Searcher №{i}";
-        myThread.Start();
-    } 
-
-    public void StepByFolders()
-    {
-        string[] hereFiles = Directory.GetFiles(Path);
-        string[] hereFolders = Directory.GetDirectories(Path);
+        string[] hereFiles = Directory.GetFiles(path);
+        string[] hereFolders = Directory.GetDirectories(path);
 
         List<FileInfo> currentFiles = new List<FileInfo>();
         List<string> fileNames = new List<string>();
@@ -47,64 +29,27 @@ class Searcher
             fileNames.Add(currentFiles[s].Name);
         }
 
-        if (fileNames.Contains(RequiredFile))
+        if (fileNames.Contains(filname))
         {
-            int foundedIndex = fileNames.IndexOf(RequiredFile);
+            int foundedIndex = fileNames.IndexOf(filname);
             Console.WriteLine($"We found it, nice! Your file is here: '{hereFiles[foundedIndex]}'");
             Environment.Exit(0);
         }
         else
         {
-            
-            for (int s = 0; s < hereFolders.Length; s++)
+            List<Task> tasks = new List<Task>();
+
+            foreach (string folder in hereFolders)
             {
-                sem.WaitOne();
-                StepByFolders();
-                Thread.Sleep(1000);
-                sem.Release();
-                Thread.Sleep(1000);
-                
-                if (s == hereFolders.Length - 1)
-                {
-                    Console.WriteLine($"Sorry, I can't find your file here");
-                    Environment.Exit(0);
-                }
+                Task task = Task.Run(() => Searcher.StepByFolders(folder, filname, token));
+                tasks.Add(task);
             }
-
+            try
+            {
+                await Task.WhenAll(tasks);
+            }
+            catch (OperationCanceledException){}
         }
-    }
-}
-
-
-class Reader
-{
-    static Semaphore sem = new Semaphore(3, 3);
-    Thread myThread;
-    int count = 6;
-
-    public Reader(int i)
-    {
-        myThread = new Thread(Read);
-        myThread.Name = $"Читатель {i}";
-        myThread.Start();
-    }
-
-    public void Read()
-    {
-        while (count > 0)
-        {
-            sem.WaitOne();
-
-            Console.WriteLine($"{Thread.CurrentThread.Name} входит в библиотеку");
-            Console.WriteLine($"{Thread.CurrentThread.Name} читает");
-            Thread.Sleep(1000);
-
-            Console.WriteLine($"{Thread.CurrentThread.Name} покидает библиотеку");
-            sem.Release();
-
-            count--;
-            Thread.Sleep(1000);
-        }
-
+        semaphore.Release();
     }
 }
