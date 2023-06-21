@@ -1,24 +1,25 @@
-﻿using System;
-using System.IO;
-using System.Collections;
-
-string sourceDirectory = "/home/dunice/tfolder/tfold2";
+﻿string sourceDirectory = "/home/dunice/tfolder/tfold2";
 string requiredFile = "file5.txt";
 
 CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
 CancellationToken token = cancelTokenSource.Token;
 
-await Task.Run(() => Searcher.StepByFolders(sourceDirectory, requiredFile, token));
+await Task.Run(() => Searcher.StepByFolders(sourceDirectory, requiredFile, token, sourceDirectory));
 class Searcher
 {
     static SemaphoreSlim semaphore = new SemaphoreSlim(Environment.ProcessorCount);
 
-    static public async Task StepByFolders(string path, string filname, CancellationToken token)
+    static public async Task StepByFolders(string path, 
+                                           string filname, 
+                                           CancellationToken token,
+                                           string sourceDirectory)
     {
         semaphore.Wait();
 
         string[] hereFiles = Directory.GetFiles(path);
         string[] hereFolders = Directory.GetDirectories(path);
+        bool fileFound = false;
+        object lockObj = new object();
 
         List<FileInfo> currentFiles = new List<FileInfo>();
         List<string> fileNames = new List<string>();
@@ -41,7 +42,7 @@ class Searcher
 
             foreach (string folder in hereFolders)
             {
-                Task task = Task.Run(() => Searcher.StepByFolders(folder, filname, token));
+                Task task = Task.Run(() => Searcher.StepByFolders(folder, filname, token, sourceDirectory));
                 tasks.Add(task);
             }
             try
@@ -51,5 +52,13 @@ class Searcher
             catch (OperationCanceledException){}
         }
         semaphore.Release();
+
+        if (path == sourceDirectory && !fileFound)
+        {
+            lock(lockObj)
+            {
+                Console.WriteLine("The file was not found");
+            }
+        } 
     }
 }
